@@ -165,9 +165,21 @@
             color: #1e3a8a;
         }
 
+        .edit {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         .danger {
             background: #fee2e2;
             color: #991b1b;
+        }
+
+        .ghost {
+            width: 100%;
+            margin-top: 10px;
+            background: #eef2f7;
+            color: #334155;
         }
 
         .task-list {
@@ -199,6 +211,11 @@
         .task.done h3 {
             text-decoration: line-through;
             color: #667085;
+        }
+
+        .is-editing {
+            border-color: #f59e0b;
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.14);
         }
 
         .meta {
@@ -316,7 +333,7 @@
                 </form>
 
                 <form class="panel" id="task-form">
-                    <h2>Tạo task</h2>
+                    <h2 id="task-form-title">Tạo task</h2>
                     <div class="field">
                         <label for="task-title">Tiêu đề</label>
                         <input id="task-title" type="text" placeholder="Ví dụ: Viết API CRUD" required>
@@ -351,7 +368,8 @@
                         <label>Tags</label>
                         <div class="checkbox-list" id="tag-checkboxes"></div>
                     </div>
-                    <button class="primary" type="submit">Thêm task</button>
+                    <button class="primary" id="task-submit-button" type="submit">Thêm task</button>
+                    <button class="ghost" id="cancel-edit-button" type="button" hidden>Hủy sửa</button>
                 </form>
             </div>
 
@@ -373,11 +391,20 @@
             projects: [],
             tags: [],
             tasks: [],
+            editingTaskId: null,
         };
 
         const projectForm = document.querySelector("#project-form");
         const tagForm = document.querySelector("#tag-form");
         const taskForm = document.querySelector("#task-form");
+        const taskFormTitle = document.querySelector("#task-form-title");
+        const taskSubmitButton = document.querySelector("#task-submit-button");
+        const cancelEditButton = document.querySelector("#cancel-edit-button");
+        const taskTitleInput = document.querySelector("#task-title");
+        const taskDescriptionInput = document.querySelector("#task-description");
+        const taskPriorityInput = document.querySelector("#task-priority");
+        const taskDeadlineInput = document.querySelector("#task-deadline");
+        const taskNoteInput = document.querySelector("#task-note");
         const projectSelect = document.querySelector("#task-project");
         const tagCheckboxes = document.querySelector("#tag-checkboxes");
         const taskList = document.querySelector("#task-list");
@@ -465,7 +492,7 @@
                 )).join("");
 
                 return `
-                    <article class="task ${task.is_done ? "done" : ""}">
+                    <article class="task ${task.is_done ? "done" : ""} ${state.editingTaskId === task.id ? "is-editing" : ""}">
                         <div>
                             <h3>${escapeHtml(task.title)}</h3>
                             <p>${escapeHtml(task.description || "Không có mô tả")}</p>
@@ -480,6 +507,7 @@
                             </div>
                         </div>
                         <div class="actions">
+                            <button class="edit" type="button" onclick="startEditTask(${task.id})">Sửa</button>
                             <button class="secondary" type="button" onclick="toggleTask(${task.id}, ${task.is_done})">
                                 ${task.is_done ? "Mở lại" : "Xong"}
                             </button>
@@ -521,7 +549,7 @@
             await loadData();
         }
 
-        async function createTask(event) {
+        async function saveTask(event) {
             event.preventDefault();
 
             const selectedTagIds = Array.from(
@@ -529,26 +557,74 @@
             ).map(input => Number(input.value));
 
             const projectId = projectSelect.value ? Number(projectSelect.value) : null;
-            const deadline = document.querySelector("#task-deadline").value || null;
+            const deadline = taskDeadlineInput.value || null;
+            const url = state.editingTaskId
+                ? `${endpoints.tasks}${state.editingTaskId}/`
+                : endpoints.tasks;
+            const method = state.editingTaskId ? "PATCH" : "POST";
 
-            await apiRequest(endpoints.tasks, {
-                method: "POST",
+            await apiRequest(url, {
+                method,
                 body: JSON.stringify({
-                    title: document.querySelector("#task-title").value,
-                    description: document.querySelector("#task-description").value,
+                    title: taskTitleInput.value,
+                    description: taskDescriptionInput.value,
                     project_id: projectId,
                     tag_ids: selectedTagIds,
                     detail: {
-                        priority: document.querySelector("#task-priority").value,
+                        priority: taskPriorityInput.value,
                         deadline,
-                        note: document.querySelector("#task-note").value,
+                        note: taskNoteInput.value,
                     },
                 }),
             });
 
-            taskForm.reset();
-            document.querySelector("#task-priority").value = "medium";
+            resetTaskForm();
             await loadData();
+        }
+
+        function startEditTask(id) {
+            const task = state.tasks.find(item => item.id === id);
+            if (!task) {
+                return;
+            }
+
+            const detail = task.detail || {};
+
+            state.editingTaskId = id;
+            taskForm.classList.add("is-editing");
+            taskFormTitle.textContent = "Sửa task";
+            taskSubmitButton.textContent = "Cập nhật task";
+            cancelEditButton.hidden = false;
+
+            taskTitleInput.value = task.title;
+            taskDescriptionInput.value = task.description || "";
+            projectSelect.value = task.project ? String(task.project.id) : "";
+            taskPriorityInput.value = detail.priority || "medium";
+            taskDeadlineInput.value = detail.deadline || "";
+            taskNoteInput.value = detail.note || "";
+            setSelectedTags(task.tags.map(tag => tag.id));
+            renderTasks();
+            taskForm.scrollIntoView({ behavior: "smooth", block: "start" });
+            taskTitleInput.focus();
+        }
+
+        function setSelectedTags(tagIds) {
+            const selectedIds = new Set(tagIds.map(id => Number(id)));
+            tagCheckboxes.querySelectorAll("input[type='checkbox']").forEach(input => {
+                input.checked = selectedIds.has(Number(input.value));
+            });
+        }
+
+        function resetTaskForm() {
+            state.editingTaskId = null;
+            taskForm.reset();
+            taskForm.classList.remove("is-editing");
+            taskFormTitle.textContent = "Tạo task";
+            taskSubmitButton.textContent = "Thêm task";
+            cancelEditButton.hidden = true;
+            taskPriorityInput.value = "medium";
+            setSelectedTags([]);
+            renderTasks();
         }
 
         async function toggleTask(id, isDone) {
@@ -579,7 +655,8 @@
 
         projectForm.addEventListener("submit", createProject);
         tagForm.addEventListener("submit", createTag);
-        taskForm.addEventListener("submit", createTask);
+        taskForm.addEventListener("submit", saveTask);
+        cancelEditButton.addEventListener("click", resetTaskForm);
         loadData();
     </script>
 </body>
