@@ -143,13 +143,3 @@ Port `8000` bị chiếm:
 ```powershell
 python manage.py runserver 8001
 ```
-
-## Không nên commit
-
-Không đưa các thư mục/file này lên GitHub:
-
-```txt
-.venv/
-__pycache__/
-db.sqlite3
-```
