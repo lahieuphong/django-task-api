@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task Relationship API</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f6f8fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .page {
+            width: min(1120px, calc(100% - 32px));
+            margin: 32px auto;
+        }
+
+        .header {
+            margin-bottom: 22px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+            line-height: 1.2;
+        }
+
+        .header p {
+            margin: 0;
+            color: #5b6475;
+            line-height: 1.5;
+        }
+
+        .relation-map {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .relation {
+            border: 1px solid #dfe4ee;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 14px;
+        }
+
+        .relation strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #0f766e;
+        }
+
+        .relation span {
+            display: block;
+            color: #5b6475;
+            line-height: 1.45;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid #dfe4ee;
+            border-radius: 8px;
+            padding: 18px;
+            box-shadow: 0 8px 20px rgba(23, 32, 51, 0.06);
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #384258;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid #cbd3e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #172033;
+            font: inherit;
+            background: #ffffff;
+        }
+
+        textarea {
+            min-height: 82px;
+            resize: vertical;
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .checkbox-list {
+            display: grid;
+            gap: 8px;
+            max-height: 130px;
+            overflow: auto;
+            border: 1px solid #dfe4ee;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: #384258;
+            font-size: 14px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+        }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        .primary {
+            width: 100%;
+            background: #2563eb;
+            color: white;
+        }
+
+        .secondary {
+            background: #e8eefb;
+            color: #1e3a8a;
+        }
+
+        .danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .task-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .task {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            border: 1px solid #dfe4ee;
+            border-radius: 8px;
+            padding: 14px;
+            background: #ffffff;
+        }
+
+        .task h3 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .task p {
+            margin: 0;
+            color: #5b6475;
+            line-height: 1.45;
+        }
+
+        .task.done h3 {
+            text-decoration: line-through;
+            color: #667085;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .pill {
+            border-radius: 999px;
+            padding: 5px 9px;
+            background: #edf2f7;
+            color: #384258;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .tag {
+            color: #ffffff;
+        }
+
+        .detail {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: start;
+        }
+
+        .empty,
+        .error {
+            border: 1px dashed #cbd3e1;
+            border-radius: 8px;
+            padding: 18px;
+            color: #5b6475;
+            background: #ffffff;
+            text-align: center;
+        }
+
+        .error {
+            border-color: #fecaca;
+            color: #991b1b;
+            background: #fff7f7;
+        }
+
+        @media (max-width: 860px) {
+            .relation-map,
+            .layout,
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .task {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="header">
+            <h1>Task Manager</h1>
+            <p>Ví dụ nhỏ để thấy frontend gọi API và dữ liệu liên kết với nhau trong database.</p>
+        </section>
+
+        <section class="relation-map">
+            <div class="relation">
+                <strong>1 - 1</strong>
+                <span>Một Task có một TaskDetail: priority, deadline, note.</span>
+            </div>
+            <div class="relation">
+                <strong>1 - nhiều</strong>
+                <span>Một Project có nhiều Task, mỗi Task thuộc một Project.</span>
+            </div>
+            <div class="relation">
+                <strong>Nhiều - nhiều</strong>
+                <span>Một Task có nhiều Tag, một Tag dùng lại ở nhiều Task.</span>
+            </div>
+        </section>
+
+        <section class="layout">
+            <div class="stack">
+                <form class="panel" id="project-form">
+                    {% csrf_token %}
+                    <h2>Tạo project</h2>
+                    <div class="field">
+                        <label for="project-name">Tên project</label>
+                        <input id="project-name" type="text" placeholder="Ví dụ: Học backend" required>
+                    </div>
+                    <div class="field">
+                        <label for="project-description">Mô tả</label>
+                        <textarea id="project-description" placeholder="Mô tả ngắn"></textarea>
+                    </div>
+                    <button class="primary" type="submit">Thêm project</button>
+                </form>
+
+                <form class="panel" id="tag-form">
+                    <h2>Tạo tag</h2>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="tag-name">Tên tag</label>
+                            <input id="tag-name" type="text" placeholder="API" required>
+                        </div>
+                        <div class="field">
+                            <label for="tag-color">Màu</label>
+                            <input id="tag-color" type="color" value="#2563eb">
+                        </div>
+                    </div>
+                    <button class="primary" type="submit">Thêm tag</button>
+                </form>
+
+                <form class="panel" id="task-form">
+                    <h2>Tạo task</h2>
+                    <div class="field">
+                        <label for="task-title">Tiêu đề</label>
+                        <input id="task-title" type="text" placeholder="Ví dụ: Viết API CRUD" required>
+                    </div>
+                    <div class="field">
+                        <label for="task-description">Mô tả</label>
+                        <textarea id="task-description" placeholder="Ghi chú cho task"></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="task-project">Project</label>
+                        <select id="task-project"></select>
+                    </div>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="task-deadline">Deadline</label>
+                            <input id="task-deadline" type="date">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="task-note">Detail note</label>
+                        <textarea id="task-note" placeholder="Thông tin riêng của task"></textarea>
+                    </div>
+                    <div class="field">
+                        <label>Tags</label>
+                        <div class="checkbox-list" id="tag-checkboxes"></div>
+                    </div>
+                    <button class="primary" type="submit">Thêm task</button>
+                </form>
+            </div>
+
+            <section class="panel">
+                <h2>Danh sách task</h2>
+                <div class="task-list" id="task-list"></div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const endpoints = {
+            projects: "/api/projects/",
+            tags: "/api/tags/",
+            tasks: "/api/tasks/",
+        };
+
+        const state = {
+            projects: [],
+            tags: [],
+            tasks: [],
+        };
+
+        const projectForm = document.querySelector("#project-form");
+        const tagForm = document.querySelector("#tag-form");
+        const taskForm = document.querySelector("#task-form");
+        const projectSelect = document.querySelector("#task-project");
+        const tagCheckboxes = document.querySelector("#tag-checkboxes");
+        const taskList = document.querySelector("#task-list");
+
+        function getCookie(name) {
+            const cookies = document.cookie.split(";").map(cookie => cookie.trim());
+            const found = cookies.find(cookie => cookie.startsWith(name + "="));
+            return found ? decodeURIComponent(found.split("=")[1]) : "";
+        }
+
+        async function apiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"),
+                    ...(options.headers || {}),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed: ${response.status}`);
+            }
+
+            if (response.status === 204) {
+                return null;
+            }
+
+            return response.json();
+        }
+
+        async function loadData() {
+            try {
+                const [projects, tags, tasks] = await Promise.all([
+                    apiRequest(endpoints.projects),
+                    apiRequest(endpoints.tags),
+                    apiRequest(endpoints.tasks),
+                ]);
+
+                state.projects = projects;
+                state.tags = tags;
+                state.tasks = tasks;
+
+                renderProjectOptions();
+                renderTagCheckboxes();
+                renderTasks();
+            } catch (error) {
+                taskList.innerHTML = '<div class="error">Không tải được dữ liệu.</div>';
+            }
+        }
+
+        function renderProjectOptions() {
+            projectSelect.innerHTML = [
+                '<option value="">Chưa chọn project</option>',
+                ...state.projects.map(project => (
+                    `<option value="${project.id}">${escapeHtml(project.name)} (${project.task_count} task)</option>`
+                )),
+            ].join("");
+        }
+
+        function renderTagCheckboxes() {
+            if (state.tags.length === 0) {
+                tagCheckboxes.innerHTML = '<span class="empty">Chưa có tag.</span>';
+                return;
+            }
+
+            tagCheckboxes.innerHTML = state.tags.map(tag => `
+                <label class="checkbox-row">
+                    <input type="checkbox" value="${tag.id}">
+                    <span class="pill tag" style="background:${escapeHtml(tag.color)}">${escapeHtml(tag.name)}</span>
+                </label>
+            `).join("");
+        }
+
+        function renderTasks() {
+            if (state.tasks.length === 0) {
+                taskList.innerHTML = '<div class="empty">Chưa có task nào.</div>';
+                return;
+            }
+
+            taskList.innerHTML = state.tasks.map(task => {
+                const detail = task.detail || {};
+                const tags = task.tags.map(tag => (
+                    `<span class="pill tag" style="background:${escapeHtml(tag.color)}">${escapeHtml(tag.name)}</span>`
+                )).join("");
+
+                return `
+                    <article class="task ${task.is_done ? "done" : ""}">
+                        <div>
+                            <h3>${escapeHtml(task.title)}</h3>
+                            <p>${escapeHtml(task.description || "Không có mô tả")}</p>
+                            <div class="meta">
+                                <span class="pill">Project: ${escapeHtml(task.project?.name || "Chưa chọn")}</span>
+                                <span class="pill">Priority: ${escapeHtml(detail.priority || "medium")}</span>
+                                <span class="pill">Deadline: ${escapeHtml(detail.deadline || "Chưa đặt")}</span>
+                                ${tags}
+                            </div>
+                            <div class="detail">
+                                <p>${escapeHtml(detail.note || "Chưa có detail note")}</p>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="secondary" type="button" onclick="toggleTask(${task.id}, ${task.is_done})">
+                                ${task.is_done ? "Mở lại" : "Xong"}
+                            </button>
+                            <button class="danger" type="button" onclick="deleteTask(${task.id})">Xóa</button>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        async function createProject(event) {
+            event.preventDefault();
+
+            await apiRequest(endpoints.projects, {
+                method: "POST",
+                body: JSON.stringify({
+                    name: document.querySelector("#project-name").value,
+                    description: document.querySelector("#project-description").value,
+                }),
+            });
+
+            projectForm.reset();
+            await loadData();
+        }
+
+        async function createTag(event) {
+            event.preventDefault();
+
+            await apiRequest(endpoints.tags, {
+                method: "POST",
+                body: JSON.stringify({
+                    name: document.querySelector("#tag-name").value,
+                    color: document.querySelector("#tag-color").value,
+                }),
+            });
+
+            tagForm.reset();
+            document.querySelector("#tag-color").value = "#2563eb";
+            await loadData();
+        }
+
+        async function createTask(event) {
+            event.preventDefault();
+
+            const selectedTagIds = Array.from(
+                tagCheckboxes.querySelectorAll("input:checked")
+            ).map(input => Number(input.value));
+
+            const projectId = projectSelect.value ? Number(projectSelect.value) : null;
+            const deadline = document.querySelector("#task-deadline").value || null;
+
+            await apiRequest(endpoints.tasks, {
+                method: "POST",
+                body: JSON.stringify({
+                    title: document.querySelector("#task-title").value,
+                    description: document.querySelector("#task-description").value,
+                    project_id: projectId,
+                    tag_ids: selectedTagIds,
+                    detail: {
+                        priority: document.querySelector("#task-priority").value,
+                        deadline,
+                        note: document.querySelector("#task-note").value,
+                    },
+                }),
+            });
+
+            taskForm.reset();
+            document.querySelector("#task-priority").value = "medium";
+            await loadData();
+        }
+
+        async function toggleTask(id, isDone) {
+            await apiRequest(`${endpoints.tasks}${id}/`, {
+                method: "PATCH",
+                body: JSON.stringify({ is_done: !isDone }),
+            });
+
+            await loadData();
+        }
+
+        async function deleteTask(id) {
+            await apiRequest(`${endpoints.tasks}${id}/`, {
+                method: "DELETE",
+            });
+
+            await loadData();
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        projectForm.addEventListener("submit", createProject);
+        tagForm.addEventListener("submit", createTag);
+        taskForm.addEventListener("submit", createTask);
+        loadData();
+    </script>
+</body>
+</html>
