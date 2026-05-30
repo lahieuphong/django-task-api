@@ -22,19 +22,51 @@ Kiểm tra Python:
 python --version
 ```
 
-## Cách chạy sau khi clone
+## Cách chạy sau khi clone kèm dữ liệu
 
 ```powershell
-git clone <link-repo>
+git clone https://github.com/lahieuphong/django-task-api.git
 cd django-task-api
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
+
+# Kiểm tra file dữ liệu đã được clone về
+Test-Path .\db.sqlite3
+
+# Cập nhật cấu trúc database nếu code có migration mới
 python manage.py migrate
-python manage.py createsuperuser
+
 python manage.py runserver
+```
+
+Nếu lệnh `Test-Path .\db.sqlite3` trả về `True` thì dữ liệu trong `db.sqlite3` đã có sẵn trên máy mới. Dự án này đã commit file `db.sqlite3`, nên sau khi `git clone` sẽ không cần import dữ liệu bằng `loaddata`.
+
+Không xoá file `db.sqlite3` trước khi chạy server, vì đây là nơi đang lưu dữ liệu SQLite của project. Nếu lỡ xoá hoặc muốn lấy lại bản database đang có trên GitHub, chạy:
+
+```powershell
+git restore --source=origin/main -- db.sqlite3
+```
+
+Tài khoản admin/superuser cũng đã được lưu trong `db.sqlite3`, nên khi clone sang máy mới có thể đăng nhập lại bằng tài khoản hiện có:
+
+```txt
+Username: admin
+Password: 123456
+```
+
+Trang admin:
+
+```txt
+http://127.0.0.1:8000/admin/
+```
+
+Không cần chạy lại `createsuperuser` nếu file `db.sqlite3` vẫn còn nguyên. Chỉ cần tạo thêm tài khoản admin mới nếu xoá mất database, database không được clone về, hoặc muốn có thêm tài khoản khác:
+
+```powershell
+python manage.py createsuperuser
 ```
 
 Nếu PowerShell không cho activate môi trường ảo, chạy:
